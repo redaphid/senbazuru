@@ -35,7 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         windows.forEach { $0.close() }
         windows = NSScreen.screens.enumerated().map { index, screen in
             let window = DesktopWindow(screen: screen)
-            window.show(index == 0 ? Preferences.url : Preferences.url.disablingAudio())
+            window.displayKey = Preferences.displayKey(screen)
+            window.isLeader = index == 0
+            let url = Preferences.url(for: window.displayKey)
+            window.show(window.isLeader ? url : url.disablingAudio())
             return window
         }
         startBridge()
@@ -76,12 +79,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.image = icon
         let menu = NSMenu()
 
-        let current = NSMenuItem(title: Preferences.url.absoluteString, action: nil, keyEquivalent: "")
-        current.isEnabled = false
-        menu.addItem(current)
+        let displays = NSMenuItem(title: "Displays", action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        for screen in NSScreen.screens {
+            let key = Preferences.displayKey(screen)
+            let title = "\(screen.localizedName) — \(label(for: Preferences.url(for: key)))"
+            let entry = NSMenuItem(title: title, action: #selector(setDisplayURL(_:)), keyEquivalent: "")
+            entry.target = self
+            entry.representedObject = key
+            submenu.addItem(entry)
+        }
+        displays.submenu = submenu
+        menu.addItem(displays)
         menu.addItem(.separator())
 
-        menu.addItem(item("Set Visualizer URL…", #selector(setURL)))
+        menu.addItem(item("Set All Displays…", #selector(setAllURL)))
         menu.addItem(item("Reload", #selector(reload)))
         menu.addItem(.separator())
 
@@ -102,21 +114,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Actions
 
-    @objc private func setURL() {
+    /// Sets one display's URL and reloads just that monitor in place.
+    @objc private func setDisplayURL(_ sender: NSMenuItem) {
+        guard let key = sender.representedObject as? String else { return }
+        guard let url = promptForURL(title: "Visualizer URL for this display", current: Preferences.url(for: key)) else { return }
+        Preferences.setURL(url, for: key)
+        if let window = windows.first(where: { $0.displayKey == key }) {
+            window.show(window.isLeader ? url : url.disablingAudio())
+        }
+        buildMenu()
+    }
+
+    @objc private func setAllURL() {
+        guard let url = promptForURL(title: "Visualizer URL (all displays)", current: Preferences.url) else { return }
+        Preferences.resetAll(to: url)
+        rebuildWindows()
+        buildMenu()
+    }
+
+    private func promptForURL(title: String, current: URL) -> URL? {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
-        alert.messageText = "Visualizer URL"
-        alert.informativeText = "The web page to render as your live wallpaper."
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 340, height: 24))
-        field.stringValue = Preferences.url.absoluteString
+        alert.messageText = title
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 360, height: 24))
+        field.stringValue = current.absoluteString
         alert.accessoryView = field
         alert.addButton(withTitle: "Load")
         alert.addButton(withTitle: "Cancel")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
-        guard let url = Preferences.normalize(field.stringValue) else { return }
-        Preferences.url = url
-        buildMenu()
-        rebuildWindows()
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        return Preferences.normalize(field.stringValue)
+    }
+
+    /// A short human label for a URL: the Paper Cranes shader name, else the host.
+    private func label(for url: URL) -> String {
+        guard let comps = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url.absoluteString }
+        if let shader = comps.queryItems?.first(where: { $0.name == "shader" })?.value { return shader }
+        return url.host ?? url.absoluteString
     }
 
     @objc private func reload() {

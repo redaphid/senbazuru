@@ -4,6 +4,8 @@ import AppKit
 /// the desktop icons and above the system wallpaper, spanning one screen.
 final class DesktopWindow: NSWindow {
     let controller = WebViewController()
+    var displayKey = ""
+    var isLeader = false
 
     init(screen: NSScreen) {
         super.init(

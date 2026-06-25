@@ -50,13 +50,20 @@ Requirements: macOS 13+, Xcode command-line tools (Swift). The build compiles wi
 microphone permission prompt works. **On first launch, allow microphone access** when
 macOS asks — that's what lets the visuals react.
 
-It lives in the menu bar (no Dock icon). Click the `◎` icon to:
+It lives in the menu bar (no Dock icon) under the crane icon:
 
-- **Set Visualizer URL…** — point it at any web visualizer (defaults to a tuned Paper
-  Cranes `iris` preset)
+- **Displays ▸** — a different visualizer per monitor. Each entry shows the display's name
+  and current shader; pick one to set its URL. Overrides are keyed by the display's stable
+  UUID, so they stick across reboots and reconnects.
+- **Set All Displays…** — point every monitor at one URL (defaults to a tuned Paper Cranes
+  `iris` preset)
 - **Reload**
 - **Launch at Login**
 - **Quit**
+
+Per-monitor shaders all react to the same microphone: the leader display owns the one
+capture and broadcasts its audio features to the rest (see Multi-display above), so each
+monitor can run its own shader and still pulse to the music.
 
 ## Notes
 
