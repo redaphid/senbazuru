@@ -1,7 +1,7 @@
 import WebKit
 
-/// Hosts a WKWebView and — unlike Plash — grants microphone capture so
-/// audio-reactive visuals can read the mic via getUserMedia().
+/// Hosts a WKWebView and grants microphone capture so audio-reactive
+/// visuals can read the mic via getUserMedia().
 final class WebViewController: NSObject, WKUIDelegate, WKNavigationDelegate {
     let webView: WKWebView
 
@@ -25,7 +25,7 @@ final class WebViewController: NSObject, WKUIDelegate, WKNavigationDelegate {
         webView.reloadFromOrigin()
     }
 
-    /// The method Plash never implements. Granting it is what unlocks the mic.
+    /// Granting this is what unlocks the mic for getUserMedia().
     func webView(
         _ webView: WKWebView,
         requestMediaCapturePermissionFor origin: WKSecurityOrigin,

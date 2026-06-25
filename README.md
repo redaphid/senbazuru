@@ -1,7 +1,7 @@
 # Senbazuru 🕊️
 
-A native macOS app that renders a web page as your **live desktop wallpaper** — like
-[Plash](https://github.com/sindresorhus/Plash), but with one thing Plash refuses to do:
+A native macOS app that renders a web page as your **live desktop wallpaper** — inspired by
+[Plash](https://github.com/sindresorhus/Plash), with one addition:
 **it gives the page microphone access.** Your audio-reactive visuals can finally hear the room.
 
 Built for [Paper Cranes](https://visuals.beadfamous.com) (`loqwai/paper-cranes`), so your
@@ -13,9 +13,9 @@ music-reactive shaders live on the desktop and pulse to whatever's playing.
 
 ## Why this exists
 
-Plash embeds a `WKWebView` but never implements WebKit's media-capture permission
-delegate, so `getUserMedia()` is denied and audio-reactive sites stay silent. Senbazuru
-implements that one method and grants it:
+Plash is wonderful for putting a website on your desktop, but its `WKWebView` doesn't
+grant microphone access, so audio-reactive sites stay silent. Senbazuru implements
+WebKit's media-capture permission delegate and grants it:
 
 ```swift
 func webView(_ webView: WKWebView,
@@ -28,7 +28,7 @@ func webView(_ webView: WKWebView,
 ```
 
 That, plus an `NSMicrophoneUsageDescription` and the `audio-input` entitlement, is the
-whole trick.
+whole trick. Thanks to [Plash](https://github.com/sindresorhus/Plash) for the desktop-wallpaper idea.
 
 ## Multi-display
 
