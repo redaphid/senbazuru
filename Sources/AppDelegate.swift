@@ -70,7 +70,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: Menu
 
     private func buildMenu() {
-        statusItem.button?.title = "◎"
+        let icon = NSImage(contentsOf: Bundle.main.url(forResource: "menubar", withExtension: "png")!)!
+        icon.isTemplate = true
+        icon.size = NSSize(width: 18, height: 18)
+        statusItem.button?.image = icon
         let menu = NSMenu()
 
         let current = NSMenuItem(title: Preferences.url.absoluteString, action: nil, keyEquivalent: "")

@@ -20,6 +20,7 @@ swiftc -O \
 
 cp Info.plist "$APP/Contents/Info.plist"
 cp icon/AppIcon.icns "$RES_DIR/AppIcon.icns"
+cp icon/menubar.png "$RES_DIR/menubar.png"
 
 # Ad-hoc sign with hardened runtime so the microphone TCC prompt works.
 codesign --force --options runtime \
