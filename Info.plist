@@ -10,6 +10,8 @@
 	<string>com.hypnodroid.senbazuru</string>
 	<key>CFBundleExecutable</key>
 	<string>Senbazuru</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
