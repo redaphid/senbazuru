@@ -18,6 +18,12 @@ enum Preferences {
         set { UserDefaults.standard.set(newValue.absoluteString, forKey: urlKey) }
     }
 
+    /// When true, the visuals only run while on AC power (paused on battery).
+    static var onlyOnAC: Bool {
+        get { UserDefaults.standard.bool(forKey: "onlyOnAC") }
+        set { UserDefaults.standard.set(newValue, forKey: "onlyOnAC") }
+    }
+
     /// Stable per-monitor identifier (display UUID), persistent across reconnects.
     static func displayKey(_ screen: NSScreen) -> String {
         guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return "main" }

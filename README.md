@@ -58,6 +58,8 @@ It lives in the menu bar (no Dock icon) under the crane icon:
 - **Set All Displays…** — point every monitor at one URL (defaults to a tuned Paper Cranes
   `iris` preset)
 - **Reload**
+- **Only on AC Power** — when on, the visuals tear down (stopping GPU + mic) the moment you
+  unplug, and rebuild when you plug back in. Saves laptop battery; no-op on desktops.
 - **Launch at Login**
 - **Quit**
 

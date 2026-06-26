@@ -1,10 +1,12 @@
 import AppKit
 import AVFoundation
+import IOKit.ps
 import ServiceManagement
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var windows: [DesktopWindow] = []
     private var bridgeTimer: Timer?
+    private var powerSource: CFRunLoopSource?
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
     /// Reads the leader webview's live audio features (merged across the FFT,
@@ -21,10 +23,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AVCaptureDevice.requestAccess(for: .audio) { _ in }
         installMainMenu()
         buildMenu()
-        rebuildWindows()
+        startPowerMonitoring()
+        applyState(forceRebuild: true)
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(rebuildWindows),
+            selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
@@ -32,7 +35,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Desktop windows
 
-    @objc private func rebuildWindows() {
+    @objc private func screensChanged() {
+        applyState(forceRebuild: true)
+    }
+
+    private func buildWindows() {
         windows.forEach { $0.close() }
         windows = NSScreen.screens.enumerated().map { index, screen in
             let window = DesktopWindow(screen: screen)
@@ -45,9 +52,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         startBridge()
     }
 
+    private func teardownWindows() {
+        bridgeTimer?.invalidate()
+        bridgeTimer = nil
+        windows.forEach { $0.close() }
+        windows = []
+    }
+
     private func reloadAll() {
         windows.forEach { $0.controller.reload() }
         startBridge()
+    }
+
+    // MARK: Power gating
+
+    /// Builds the visuals when they should run (always, unless "Only on AC Power"
+    /// is on and we're on battery), and tears them down otherwise. forceRebuild
+    /// rebuilds even when already running — used on screen and toggle changes.
+    private func applyState(forceRebuild: Bool) {
+        let shouldRun = !Preferences.onlyOnAC || onACPower()
+        guard shouldRun else { teardownWindows(); return }
+        guard forceRebuild || windows.isEmpty else { return }
+        buildWindows()
+    }
+
+    private func onACPower() -> Bool {
+        let snapshot = IOPSCopyPowerSourcesInfo().takeRetainedValue()
+        let type = IOPSGetProvidingPowerSourceType(snapshot).takeUnretainedValue() as String
+        return type == kIOPSACPowerValue
+    }
+
+    /// Re-evaluates when the power source changes (plugged in / unplugged).
+    private func startPowerMonitoring() {
+        let context = Unmanaged.passUnretained(self).toOpaque()
+        let callback: IOPowerSourceCallbackType = { ctx in
+            guard let ctx else { return }
+            Unmanaged<AppDelegate>.fromOpaque(ctx).takeUnretainedValue().applyState(forceRebuild: false)
+        }
+        guard let source = IOPSNotificationCreateRunLoopSource(callback, context)?.takeRetainedValue() else { return }
+        CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
+        powerSource = source
     }
 
     // MARK: Audio bridge
@@ -90,10 +134,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         editMenu.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
         editMenu.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
         editMenu.addItem(.separator())
-        editMenu.addItem(withTitle: "Cut", action: Selector(("cut:")), keyEquivalent: "x")
-        editMenu.addItem(withTitle: "Copy", action: Selector(("copy:")), keyEquivalent: "c")
-        editMenu.addItem(withTitle: "Paste", action: Selector(("paste:")), keyEquivalent: "v")
-        editMenu.addItem(withTitle: "Select All", action: Selector(("selectAll:")), keyEquivalent: "a")
+        editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         editItem.submenu = editMenu
         mainMenu.addItem(editItem)
 
@@ -127,6 +171,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(item("Reload", #selector(reload)))
         menu.addItem(.separator())
 
+        let onlyAC = item("Only on AC Power", #selector(toggleOnlyOnAC))
+        onlyAC.state = Preferences.onlyOnAC ? .on : .off
+        menu.addItem(onlyAC)
+
         let login = item("Launch at Login", #selector(toggleLogin))
         login.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(login)
@@ -158,7 +206,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func setAllURL() {
         guard let url = promptForURL(title: "Visualizer URL (all displays)", current: Preferences.url) else { return }
         Preferences.resetAll(to: url)
-        rebuildWindows()
+        applyState(forceRebuild: true)
         buildMenu()
     }
 
@@ -184,6 +232,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func reload() {
         reloadAll()
+    }
+
+    @objc private func toggleOnlyOnAC() {
+        Preferences.onlyOnAC.toggle()
+        applyState(forceRebuild: true)
+        buildMenu()
     }
 
     @objc private func toggleLogin() {
