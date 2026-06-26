@@ -7,9 +7,9 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build
         run: bash build.sh
@@ -23,7 +23,7 @@ jobs:
         run: ditto -c -k --sequesterRsrc --keepParent "build/Senbazuru.app" "Senbazuru.zip"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Senbazuru-app
           path: Senbazuru.zip
