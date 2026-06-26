@@ -1,0 +1,29 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: bash build.sh
+
+      - name: Verify bundle
+        run: |
+          test -d "build/Senbazuru.app"
+          codesign --verify --strict --verbose=2 "build/Senbazuru.app"
+
+      - name: Zip app
+        run: ditto -c -k --sequesterRsrc --keepParent "build/Senbazuru.app" "Senbazuru.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Senbazuru-app
+          path: Senbazuru.zip
