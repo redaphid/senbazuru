@@ -14,6 +14,9 @@ final class DesktopWindow: NSWindow {
             backing: .buffered,
             defer: false
         )
+        // NSWindow defaults isReleasedWhenClosed to true; with ARC owning these
+        // in an array, close() would over-release and crash on the next rebuild.
+        isReleasedWhenClosed = false
         level = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopIconWindow)) - 1)
         collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         isOpaque = true
