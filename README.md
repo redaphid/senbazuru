@@ -45,6 +45,13 @@ Followers load with `audio=none` and never contend. All monitors react in sync.
 open "build/Senbazuru.app"
 ```
 
+To install it into `/Applications` and keep **Launch at Login** working across rebuilds,
+use `./install.sh` instead — it builds, copies to `/Applications`, and re-pins the login
+item to the freshly signed bundle. (Each ad-hoc rebuild gets a new code-signing hash, which
+orphans the previously registered login item; `install.sh` re-registers it.) Because the
+app is ad-hoc signed (no Developer ID), the only fully reliable launch-at-login fix is
+signing with a Developer ID identity — verify the login item by logging out and back in.
+
 Requirements: macOS 13+, Xcode command-line tools (Swift). The build compiles with
 `swiftc`, assembles the `.app` bundle, and ad-hoc signs it with a hardened runtime so the
 microphone permission prompt works. **On first launch, allow microphone access** when
